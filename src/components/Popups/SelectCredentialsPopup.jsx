@@ -12,6 +12,8 @@ import { useCredentialName } from '@/hooks/useCredentialName';
 import i18n from '@/i18n';
 import { prettyDomain, truncateByWords } from '@/utils';
 import { BookCheck, CheckCircle, Circle, IdCard, View } from 'lucide-react';
+import { useVeranaTrust } from '@/lib/services/Verana/useVeranaTrust';
+import VeranaTrustCard from '../Verana/VeranaTrustCard';
 
 const SelectableCredentialSlideCard = ({
 	vcEntity,
@@ -160,6 +162,7 @@ function SelectCredentialsPopup({ popupState, setPopupState, showPopup, hidePopu
 	const currentKey = keys[currentIndex];
 	const currentSlide = activeSlideIndexByKey[currentKey] ?? 1;
 	const [currentSummarySlide, setCurrentSummarySlide] = useState(0);
+	const trust = useVeranaTrust(popupState?.options?.verana);
 
 	const handleSlideChange = (idx) => {
 		setActiveSlideIndexByKey(prev => ({ ...prev, [currentKey]: idx + 1 }));
@@ -325,6 +328,10 @@ function SelectCredentialsPopup({ popupState, setPopupState, showPopup, hidePopu
 									</span>
 								</div>
 							)}
+							<div className="my-2 flex justify-center">
+								<VeranaTrustCard trust={trust} />
+							</div>
+
 							{popupState.options.verifierPurpose && (() => {
 								const { text: truncatedText, truncated } = truncateByWords(popupState.options.verifierPurpose, 40);
 								const textToDisplay = showFullPurpose ? popupState.options.verifierPurpose : truncatedText;
@@ -456,6 +463,10 @@ function SelectCredentialsPopup({ popupState, setPopupState, showPopup, hidePopu
 							/>
 						</p>
 
+						<div className="my-2 flex justify-center">
+							<VeranaTrustCard trust={trust} />
+						</div>
+
 						{popupState?.options?.parsedTransactionData && popupState?.options?.parsedTransactionData.map((txData) => {
 							const TxComp = txData.ui;
 							return <TxComp />
@@ -559,9 +570,11 @@ function SelectCredentialsPopup({ popupState, setPopupState, showPopup, hidePopu
 						id={`${keys[currentIndex] === 'summary' ? 'send' : 'next'}-select-credentials`}
 						onClick={goToNextSelection}
 						variant="primary"
-						disabled={keys[currentIndex] !== 'summary' && keys[currentIndex] !== 'preview' && selectedCredential === undefined}
-						title={selectedCredential === undefined && keys[currentIndex] !== 'summary' && keys[currentIndex] !== 'preview'
-							? t('selectCredentialPopup.nextButtonDisabledTitle') : ''}
+						disabled={trust.blocked || (keys[currentIndex] !== 'summary' && keys[currentIndex] !== 'preview' && selectedCredential === undefined)}
+						title={trust.blocked
+							? t('verana.blockedPresentation')
+							: selectedCredential === undefined && keys[currentIndex] !== 'summary' && keys[currentIndex] !== 'preview'
+								? t('selectCredentialPopup.nextButtonDisabledTitle') : ''}
 					>
 						{keys[currentIndex] === 'summary'
 							? t('common.navItemSendCredentialsSimple')

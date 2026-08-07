@@ -6,6 +6,7 @@ import OpenID4VPContext from "./OpenID4VPContext";
 import GenericConsentPopup from "@/components/Popups/GenericConsentPopup";
 import SessionContext from "./SessionContext";
 import { ParsedTransactionData } from "@/lib/services/OpenID4VP/TransactionData/parseTransactionData";
+import { VeranaCounterparty } from "@/lib/services/Verana/useVeranaTrust";
 
 
 export const OpenID4VPContextProvider = ({ children }: React.PropsWithChildren) => {
@@ -66,8 +67,9 @@ export const OpenID4VPContextProvider = ({ children }: React.PropsWithChildren) 
 			verifierDomainName: string,
 			verifierPurpose: string,
 			parsedTransactionData?: ParsedTransactionData[],
+			verana?: VeranaCounterparty,
 		): Promise<Map<string, number>> => {
-			return showPopup({ conformantCredentialsMap, verifierDomainName, verifierPurpose, parsedTransactionData });
+			return showPopup({ conformantCredentialsMap, verifierDomainName, verifierPurpose, parsedTransactionData, verana });
 		},
 		[showPopup]
 	);
