@@ -1,25 +1,23 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import PopupLayout from './PopupLayout';
 import { useTranslation } from 'react-i18next';
 import Button from '../Buttons/Button';
 import useScreenType from '../../hooks/useScreenType';
 import { TriangleAlert } from 'lucide-react';
+import { useVeranaTrust } from '@/lib/services/Verana/useVeranaTrust';
+import VeranaTrustCard from '../Verana/VeranaTrustCard';
 
 function GenericConsentPopup({ popupConsentState, setPopupConsentState, showConsentPopup, hidePopupConsent }) {
 	const { t, i18n } = useTranslation();
 
 	const screenType = useScreenType();
 
+	const warnings = popupConsentState?.options?.warnings ?? [];
+	const trust = useVeranaTrust(popupConsentState?.options?.verana);
+
 	const reinitialize = useCallback(() => {
 		setPopupConsentState((current) => ({ ...current, isOpen: false }));
 	}, [setPopupConsentState]);
-
-
-	useEffect(() => {
-		if (popupConsentState?.options) {
-		}
-	}, [popupConsentState]);
-
 
 	const consent = () => {
 		reinitialize();
@@ -27,17 +25,13 @@ function GenericConsentPopup({ popupConsentState, setPopupConsentState, showCons
 	}
 
 	const onClose = () => {
-		// setIsOpen(false);
 		popupConsentState.resolve(false);
 		reinitialize();
-		// navigate('/');
 	}
 
 	if (!popupConsentState?.isOpen) {
 		return null;
 	};
-
-
 
 	return (
 		<PopupLayout isOpen={popupConsentState?.isOpen} onClose={onClose} loading={false} fullScreen={screenType !== 'desktop'}>
@@ -45,15 +39,25 @@ function GenericConsentPopup({ popupConsentState, setPopupConsentState, showCons
 				<div>
 					{popupConsentState?.options?.title ? <h2 className="text-lg font-bold mb-2 text-lm-gray-900 dark:text-dm-gray-100">{popupConsentState?.options?.title}</h2> : <></>}
 					<hr className="mb-2 border-t border-lm-gray-400 dark:border-dm-gray-600" />
-					<p className='text-lm-gray-800 dark:text-dm-gray-200 text-sm mt-3 mb-2'>{t('issuance.credentialsHaveErrors')}</p>
-					<ul className='text-sm text-lm-gray-800 dark:text-dm-gray-200 list-disc ml-1 mb-4'>
-						{popupConsentState?.options?.warnings?.map(warning => (
-							<li className='flex gap-3 items-center'>
-								<TriangleAlert />
-								{i18n.exists(`parsing.${warning.code}`) ? t(`parsing.${warning.code}`) : warning.code}
-							</li>
-						))}
-					</ul>
+
+					{warnings.length > 0 && (
+						<>
+							<p className='text-lm-gray-800 dark:text-dm-gray-200 text-sm mt-3 mb-2'>{t('issuance.credentialsHaveErrors')}</p>
+							<ul className='text-sm text-lm-gray-800 dark:text-dm-gray-200 list-disc ml-1 mb-4'>
+								{warnings.map(warning => (
+									<li key={warning.code} className='flex gap-3 items-center'>
+										<TriangleAlert />
+										{i18n.exists(`parsing.${warning.code}`) ? t(`parsing.${warning.code}`) : warning.code}
+									</li>
+								))}
+							</ul>
+						</>
+					)}
+
+					<div className="my-3 flex justify-center">
+						<VeranaTrustCard trust={trust} />
+					</div>
+
 					<p className='text-lm-gray-800 dark:text-dm-gray-200 text-sm mt-3 mb-2'>{t('issuance.proceed')}</p>
 				</div>
 
@@ -70,6 +74,8 @@ function GenericConsentPopup({ popupConsentState, setPopupConsentState, showCons
 						<Button
 							id="consent"
 							variant="secondary"
+							disabled={trust.blocked}
+							title={trust.blocked ? t('verana.blockedIssuance') : ''}
 							onClick={consent}>
 							{t('common.continue')}
 						</Button>

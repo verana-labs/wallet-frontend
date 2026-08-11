@@ -14,6 +14,18 @@ import { getLeastUsedCredentialInstance } from "../CredentialBatchHelper";
 import { WalletStateUtils } from "@/services/WalletStateUtils";
 import { TransactionDataResponse } from "wallet-common";
 import { verifyRequestUriAndCerts } from "../../utils/verifyRequestUriAndCerts";
+import { VeranaCounterparty } from "../Verana/useVeranaTrust";
+
+const firstVctValue = (dcqlQuery: unknown): string | undefined => {
+	const credentials = (dcqlQuery as { credentials?: { meta?: { vct_values?: unknown[] } }[] })?.credentials ?? [];
+	for (const credential of credentials) {
+		const vct = credential?.meta?.vct_values?.[0];
+		if (typeof vct === 'string') {
+			return vct;
+		}
+	}
+	return undefined;
+};
 
 export function useOpenID4VP({
 	showCredentialSelectionPopup,
@@ -24,6 +36,7 @@ export function useOpenID4VP({
 		verifierDomainName: string,
 		verifierPurpose: string,
 		parsedTransactionData?: ParsedTransactionData[],
+		verana?: VeranaCounterparty,
 	) => Promise<Map<string, number>>,
 	showTransactionDataConsentPopup: (options: Record<string, unknown>) => Promise<boolean>,
 }): IOpenID4VP {
@@ -40,8 +53,9 @@ export function useOpenID4VP({
 			verifierDomainName: string,
 			verifierPurpose: string,
 			parsedTransactionData: ParsedTransactionData[],
+			verana?: VeranaCounterparty,
 		): Promise<Map<string, number>> => {
-			return showCredentialSelectionPopup(conformantCredentialsMap, verifierDomainName, verifierPurpose, parsedTransactionData);
+			return showCredentialSelectionPopup(conformantCredentialsMap, verifierDomainName, verifierPurpose, parsedTransactionData, verana);
 		},
 		[showCredentialSelectionPopup]
 	);
@@ -117,13 +131,23 @@ export function useOpenID4VP({
 		verifierDomainName: string,
 		verifierPurpose: string,
 		parsedTransactionData: ParsedTransactionData[] | null,
+		verana?: VeranaCounterparty,
 	}> => {
 		const result = await openID4VPServer.handleAuthorizationRequest(url, vcEntityList);
 		if ("error" in result) {
 			throw new Error(result.error);
 		}
-		return result;
-	}, [openID4VPServer]);
+		const relyingParty = await openID4VPRelyingPartyStateRepository.retrieve().catch(() => undefined);
+		return {
+			...result,
+			verana: relyingParty && {
+				role: 'verifier',
+				clientId: relyingParty.client_id,
+				originUrl: relyingParty.response_uri,
+				vctUrl: firstVctValue(relyingParty.dcql_query),
+			},
+		};
+	}, [openID4VPServer, openID4VPRelyingPartyStateRepository]);
 
 	const sendAuthorizationResponse = useCallback(async (selectionMap, vcEntityList) => {
 		const response = await openID4VPServer.createAuthorizationResponse(selectionMap, vcEntityList);

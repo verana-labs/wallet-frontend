@@ -21,6 +21,8 @@ import { IssuerSigned } from '@owf/mdoc';
 import { notify } from "@/context/notifier";
 import { IOpenID4VCIClientStateRepository } from '@/lib/interfaces/IOpenID4VCIClientStateRepository';
 import { IOpenID4VCITokenRefreshMetadataProvider } from '@/lib/interfaces/IOpenID4VCIHelper';
+import { veranaDidFromOrigin } from '../Verana/veranaTrust';
+import { VeranaCounterparty } from '../Verana/useVeranaTrust';
 
 type WalletStateCredentialIssuanceSession = CurrentSchema.WalletStateCredentialIssuanceSession;
 
@@ -227,11 +229,22 @@ export function useOpenID4VCI({ errorCallback, showPopupConsent, showMessagePopu
 					return;
 				}
 
+				const credentialIssuerIdentifier = credentialIssuerMetadataRef.current.metadata.credential_issuer;
+				const veranaDid = await veranaDidFromOrigin(httpProxy, credentialIssuerIdentifier);
+				const verana: VeranaCounterparty | undefined = veranaDid
+					? {
+						role: 'issuer',
+						did: veranaDid,
+						vctUrl: credentialIssuerMetadataRef.current.metadata.credential_configurations_supported[credentialConfigurationIdRef.current]?.vct,
+					}
+					: undefined;
+
 				let userConsent = true;
-				if (warnings.length > 0 && config.DISPLAY_ISSUANCE_WARNINGS === true) {
+				if (verana || (warnings.length > 0 && config.DISPLAY_ISSUANCE_WARNINGS === true)) {
 					userConsent = await showPopupConsent({
 						title: t("issuance.title"),
-						warnings: warnings
+						warnings: warnings,
+						verana,
 					});
 				}
 
@@ -267,6 +280,7 @@ export function useOpenID4VCI({ errorCallback, showPopupConsent, showMessagePopu
 		credentialEngine,
 		showMessagePopup,
 		showPopupConsent,
+		httpProxy,
 		t,
 		api
 	]);

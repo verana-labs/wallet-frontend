@@ -1,5 +1,6 @@
 import { ExtendedVcEntity } from "@/context/CredentialsContext";
 import { ParsedTransactionData } from "../services/OpenID4VP/TransactionData/parseTransactionData";
+import { VeranaCounterparty } from "../services/Verana/useVeranaTrust";
 
 export type SendAuthorizationResponseResult =
 	{
@@ -16,12 +17,14 @@ export interface IOpenID4VP {
 		verifierDomainName: string,
 		verifierPurpose: string,
 		parsedTransactionData: ParsedTransactionData[] | null,
+		verana?: VeranaCounterparty,
 	}>;
 	promptForCredentialSelection(
 		conformantCredentialsMap: { [x: string]: number[] },
 		verifierDomainName: string,
 		verifierPurpose: string,
 		parsedTransactionData?: ParsedTransactionData[],
+		verana?: VeranaCounterparty,
 	): Promise<Map<string, number>>;
 	sendAuthorizationResponse(
 		selectionMap: Map<string, number>,

@@ -418,6 +418,10 @@
 	"updateNotification": {
 		"description": "New Version is available!"
 	},
+	"verana": {
+		"blockedIssuance": "The Verana public registry does not clear this issuer, so this credential cannot be accepted.",
+		"blockedPresentation": "The Verana public registry does not clear this verifier, so nothing can be shared."
+	},
 	"viewSelect": {
 		"aria": {
 			"menuLabel": "Credential view options",

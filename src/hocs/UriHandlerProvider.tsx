@@ -287,10 +287,10 @@ export const UriHandlerProvider = ({ children }: React.PropsWithChildren) => {
 				setUsedRequestUris((uriArray) => [...uriArray, u.searchParams.get('request_uri')]);
 				await handleAuthorizationRequest(u.toString(), vcEntityList).then((result) => {
 					console.log("Result = ", result);
-					const { conformantCredentialsMap, verifierDomainName, verifierPurpose, parsedTransactionData } = result;
+					const { conformantCredentialsMap, verifierDomainName, verifierPurpose, parsedTransactionData, verana } = result;
 					const jsonedMap = Object.fromEntries(conformantCredentialsMap);
 					console.log("Prompting for selection..")
-					return promptForCredentialSelection(jsonedMap, verifierDomainName, verifierPurpose, parsedTransactionData);
+					return promptForCredentialSelection(jsonedMap, verifierDomainName, verifierPurpose, parsedTransactionData, verana);
 				}).then((selection) => {
 					if (!(selection instanceof Map)) {
 						return;
