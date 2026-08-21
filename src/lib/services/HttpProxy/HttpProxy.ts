@@ -13,7 +13,7 @@ const walletBackendServerUrl = BACKEND_URL;
 const inFlightRequests = new Map<string, Promise<any>>();
 // Session-only cache for `no-store` responses, cleared on reload.
 const sessionCache = new Map<string, { data: any; expiry: number }>();
-const TIMEOUT = 3 * 1000;
+const TIMEOUT = 12 * 1000;
 
 const parseCacheControl = (header: string) =>
 	Object.fromEntries(
