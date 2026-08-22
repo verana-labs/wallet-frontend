@@ -32,6 +32,7 @@
 		"navItemSendCredentials": "Send Credentials",
 		"navItemSendCredentialsSimple": "Send",
 		"navItemSettings": "Settings",
+		"navItemVerana": "Verana",
 		"next": "Next",
 		"offline": "Offline",
 		"offlineTitle": "You are offline. You don't have access here right now.",
@@ -297,6 +298,42 @@
 			"description": "Please authenticate with the passkey \"{{passkeyLabel}}\"...",
 			"error": "<p>Something went wrong, please try again.</p><p>Please note that you need to authenticate with the passkey \"{{passkeyLabel}}\".</p>",
 			"title": "Upgrading passkey encryption key"
+		}
+	},
+	"pageVerana": {
+		"title": "Verana demos",
+		"description": "Six live services on the Verana testnet, three issuers and three verifiers. Each one shows how the wallet checks a counterparty against the public trust registry before you accept or share: identity first, then accreditation for this exact credential.",
+		"issuers": "Issuers",
+		"verifiers": "Verifiers",
+		"run": "Run scenario",
+		"running": "Asking the playground...",
+		"mintFailed": "The playground could not start this scenario. Try again in a moment.",
+		"needsCredential": "Get the credential from the accredited issuer first, the verifiers ask for it.",
+		"scenarios": {
+			"accreditedIssuer": {
+				"title": "Accredited issuer",
+				"expected": "Trusted and authorized to issue this credential. You can accept it."
+			},
+			"unaccreditedIssuer": {
+				"title": "Trusted but unaccredited issuer",
+				"expected": "Identity verified, but not authorized to issue this credential. Accepting is blocked."
+			},
+			"untrustedIssuer": {
+				"title": "Untrusted issuer",
+				"expected": "Nothing on the registry vouches for it. Accepting is blocked."
+			},
+			"accreditedVerifier": {
+				"title": "Accredited verifier",
+				"expected": "Trusted and authorized to request this credential. Sharing completes."
+			},
+			"unaccreditedVerifier": {
+				"title": "Trusted but unaccredited verifier",
+				"expected": "Identity verified, but not authorized to request this credential. Sharing is blocked."
+			},
+			"untrustedVerifier": {
+				"title": "Untrusted verifier",
+				"expected": "Nothing on the registry vouches for it. Sharing is blocked."
+			}
 		}
 	},
 	"parsing": {
