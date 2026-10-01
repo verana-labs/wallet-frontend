@@ -9,7 +9,7 @@ import SessionContext from '@/context/SessionContext';
 import ConnectionStatusIcon from './ConnectionStatusIcon';
 import CredentialsContext from '@/context/CredentialsContext';
 import CounterBadge from '@/components/Shared/CounterBadge';
-import { Bell, History, LogOut, PlusCircle, Send, Settings, ShieldHalf, UserCircle, Wallet } from 'lucide-react';
+import { Bell, History, LogOut, PlusCircle, Send, Settings, ShieldHalf, UserCircle, Wallet, ShieldCheck } from 'lucide-react';
 
 const NavItem = ({ icon: Icon, id, label, handleNavigate, location, path, alias, counter, notificationIcon, className = '' }) => {
 	const isActive = location.pathname === path || location.pathname === alias;
@@ -157,6 +157,15 @@ const Sidebar = ({ isOpen, toggle }) => {
 							icon={History}
 							label={t("common.navItemHistory")}
 							className="step-6"
+						/>
+
+						<NavItem
+							id="verana"
+							path="/verana"
+							location={location}
+							handleNavigate={handleNavigate}
+							icon={ShieldCheck}
+							label={t("common.navItemVerana")}
 						/>
 
 						<NavItem

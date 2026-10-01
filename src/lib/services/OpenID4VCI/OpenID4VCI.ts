@@ -243,7 +243,7 @@ export function useOpenID4VCI({ errorCallback, showPopupConsent, showMessagePopu
 				if (verana || (warnings.length > 0 && config.DISPLAY_ISSUANCE_WARNINGS === true)) {
 					userConsent = await showPopupConsent({
 						title: t("issuance.title"),
-						warnings: warnings,
+						warnings: config.DISPLAY_ISSUANCE_WARNINGS === true ? warnings : [],
 						verana,
 					});
 				}

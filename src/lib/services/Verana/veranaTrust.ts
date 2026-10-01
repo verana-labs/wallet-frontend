@@ -35,12 +35,35 @@ const getJson = async (httpProxy: IHttpProxy, url: string): Promise<unknown> => 
 	}
 };
 
+const getResolveResponse = async (httpProxy: IHttpProxy, did: string): Promise<{ status: number; body: unknown }> => {
+	try {
+		const response = await httpProxy.get(`${VERANA_RESOLVER}/resolve?did=${encodeURIComponent(did)}&detail=full`, { Accept: 'application/json' });
+		const body = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+		return { status: response.status, body };
+	} catch {
+		return { status: 0, body: undefined };
+	}
+};
+
+const refreshVeranaEvaluation = async (httpProxy: IHttpProxy, did: string): Promise<void> => {
+	try {
+		await httpProxy.post(`${VERANA_RESOLVER}/refresh`, { did }, { 'Content-Type': 'application/json' });
+	} catch {
+		return;
+	}
+};
+
+// The resolver drops an evaluation an hour after it was made and answers 404 until asked to redo it.
 export const resolveVeranaTrust = async (
 	httpProxy: IHttpProxy,
 	did: string,
 ): Promise<VeranaDetails | undefined> => {
-	const body = await getJson(httpProxy, `${VERANA_RESOLVER}/resolve?did=${encodeURIComponent(did)}&detail=full`);
-	if (!isRecord(body) || typeof body.trustStatus !== 'string') {
+	let { status, body } = await getResolveResponse(httpProxy, did);
+	if (status === 404) {
+		await refreshVeranaEvaluation(httpProxy, did);
+		({ status, body } = await getResolveResponse(httpProxy, did));
+	}
+	if (status < 200 || status > 299 || !isRecord(body) || typeof body.trustStatus !== 'string') {
 		return undefined;
 	}
 	return body as unknown as VeranaDetails;
