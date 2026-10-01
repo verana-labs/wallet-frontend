@@ -1,27 +1,43 @@
 import { IHttpProxy } from '@/lib/interfaces/IHttpProxy';
+import { VERANA_INDEXER_URL } from '@/config';
 
-export const VERANA_RESOLVER = 'https://resolver.testnet.verana.network/v1/trust';
-
-export type VeranaTrustStatus = 'TRUSTED' | 'PARTIAL' | 'UNTRUSTED' | 'UNVERIFIED';
+export type VeranaTrustStatus = 'TRUSTED' | 'UNTRUSTED' | 'UNVERIFIED';
 
 export type VeranaRole = 'issuer' | 'verifier';
 
+/** An ECS credential of the counterparty, as the indexer accepted it. */
 export interface VeranaCredential {
-	result?: string;
-	issuedBy?: string;
-	ecsType?: string;
-	claims?: Record<string, unknown>;
+	/** The ECS schema title: ServiceCredential, OrganizationCredential, PersonaCredential, ... */
+	ecsSchema?: string;
+	/** `<issuer DID>#<uuid>`. */
+	id?: string;
+	credentialSubject?: Record<string, unknown>;
+}
+
+/** A Participant entry of the counterparty in the VPR. */
+export interface VeranaParticipation {
+	role?: string;
+	state?: string;
+	credentialSchemaId?: number;
 }
 
 export interface VeranaDetails {
 	did: string;
 	trustStatus: VeranaTrustStatus;
-	production?: boolean;
-	credentials?: VeranaCredential[];
+	credentials: VeranaCredential[];
+	participations: VeranaParticipation[];
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null;
+
+const parseBody = (data: unknown): unknown => {
+	try {
+		return typeof data === 'string' ? JSON.parse(data) : data;
+	} catch {
+		return undefined;
+	}
+};
 
 const getJson = async (httpProxy: IHttpProxy, url: string): Promise<unknown> => {
 	try {
@@ -29,60 +45,75 @@ const getJson = async (httpProxy: IHttpProxy, url: string): Promise<unknown> => 
 		if (response.status < 200 || response.status > 299) {
 			return undefined;
 		}
-		return typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+		return parseBody(response.data);
 	} catch {
 		return undefined;
 	}
 };
 
-const getResolveResponse = async (httpProxy: IHttpProxy, did: string): Promise<{ status: number; body: unknown }> => {
-	try {
-		const response = await httpProxy.get(`${VERANA_RESOLVER}/resolve?did=${encodeURIComponent(did)}&detail=full`, { Accept: 'application/json' });
-		const body = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
-		return { status: response.status, body };
-	} catch {
-		return { status: 0, body: undefined };
-	}
-};
-
-const refreshVeranaEvaluation = async (httpProxy: IHttpProxy, did: string): Promise<void> => {
-	try {
-		await httpProxy.post(`${VERANA_RESOLVER}/refresh`, { did }, { 'Content-Type': 'application/json' });
-	} catch {
-		return;
-	}
-};
-
-// The resolver drops an evaluation an hour after it was made and answers 404 until asked to redo it.
+/** Verifiable Trust V4: the indexer resolves the trust of a DID. It knows only the DIDs of the VPR,
+ *  so a 404 means that the DID is not in the VPR, which is a refusal, not an unknown result. */
 export const resolveVeranaTrust = async (
 	httpProxy: IHttpProxy,
 	did: string,
 ): Promise<VeranaDetails | undefined> => {
-	let { status, body } = await getResolveResponse(httpProxy, did);
-	if (status === 404) {
-		await refreshVeranaEvaluation(httpProxy, did);
-		({ status, body } = await getResolveResponse(httpProxy, did));
-	}
-	if (status < 200 || status > 299 || !isRecord(body) || typeof body.trustStatus !== 'string') {
+	let status: number;
+	let body: unknown;
+	try {
+		const response = await httpProxy.post(
+			`${VERANA_INDEXER_URL}/v4/verifiable-trust/resolve`,
+			{ did, ecsCredentials: true, participations: true },
+			{ 'Content-Type': 'application/json', Accept: 'application/json' },
+		);
+		status = response.status;
+		body = parseBody(response.data);
+	} catch {
 		return undefined;
 	}
-	return body as unknown as VeranaDetails;
+	if (status === 404) {
+		return { did, trustStatus: 'UNTRUSTED', credentials: [], participations: [] };
+	}
+	if (status < 200 || status > 299 || !isRecord(body) || typeof body.trusted !== 'boolean') {
+		return undefined;
+	}
+	return {
+		did,
+		trustStatus: body.trusted ? 'TRUSTED' : 'UNTRUSTED',
+		credentials: Array.isArray(body.ecsCredentials) ? (body.ecsCredentials as VeranaCredential[]) : [],
+		participations: Array.isArray(body.participations) ? (body.participations as VeranaParticipation[]) : [],
+	};
 };
 
+/** The numeric CredentialSchema id that a VTJSC refers to (`vpr:verana:<chain>:cs:<id>`). */
+const schemaIdFromVtjsc = async (httpProxy: IHttpProxy, vtjscId: string): Promise<number | undefined> => {
+	if (!/^https?:\/\//i.test(vtjscId)) {
+		return undefined;
+	}
+	const document = await getJson(httpProxy, vtjscId);
+	const subject = isRecord(document) && isRecord(document.credentialSubject) ? document.credentialSubject : undefined;
+	const jsonSchema = subject && isRecord(subject.jsonSchema) ? subject.jsonSchema : undefined;
+	const ref = typeof jsonSchema?.$ref === 'string' ? jsonSchema.$ref : typeof subject?.id === 'string' ? subject.id : undefined;
+	const match = ref?.match(/:cs:(\d+)$/);
+	return match ? Number(match[1]) : undefined;
+};
+
+/** Q2/Q3: does the counterparty hold an active ISSUER (or VERIFIER) Participant entry on the
+ *  schema of this VTJSC? The resolution of Q1 already lists the Participant entries of the DID. */
 export const checkVeranaAccreditation = async (
 	httpProxy: IHttpProxy,
-	did: string,
+	details: VeranaDetails,
 	vtjscId: string,
 	role: VeranaRole,
 ): Promise<boolean | undefined> => {
-	const body = await getJson(
-		httpProxy,
-		`${VERANA_RESOLVER}/${role}-authorization?did=${encodeURIComponent(did)}&vtjscId=${encodeURIComponent(vtjscId)}`,
-	);
-	if (!isRecord(body)) {
+	const schemaId = await schemaIdFromVtjsc(httpProxy, vtjscId);
+	if (schemaId === undefined) {
 		return undefined;
 	}
-	return typeof body.authorized === 'boolean' ? body.authorized : undefined;
+	const wanted = role === 'issuer' ? 'ISSUER' : 'VERIFIER';
+	return details.participations.some(
+		(participation) =>
+			participation.role === wanted && participation.state === 'ACTIVE' && participation.credentialSchemaId === schemaId,
+	);
 };
 
 const DID_PREFIXES = ['did:webvh:', 'did:web:'];
