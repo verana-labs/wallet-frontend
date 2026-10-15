@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useHttpProxy } from '@/lib/services/HttpProxy/HttpProxy';
+import { VERANA_NETWORK } from '@/config';
 import { VERANA_DEMO_SCENARIOS, VeranaDemoScenario, mintVeranaDemo } from '@/lib/services/Verana/veranaDemos';
 import { VeranaRole } from '@/lib/services/Verana/veranaTrust';
 import Button from '@/components/Buttons/Button';
@@ -64,7 +65,7 @@ const VeranaDemos = () => {
 	return (
 		<div className="px-6 sm:px-12 w-full">
 			<H1 heading={t('pageVerana.title')} />
-			<PageDescription description={t('pageVerana.description')} />
+			<PageDescription description={t('pageVerana.description', { network: VERANA_NETWORK })} />
 			{group('issuer')}
 			{group('verifier')}
 		</div>

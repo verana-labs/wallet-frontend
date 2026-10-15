@@ -25,7 +25,6 @@ const PALETTE = [
 const VERDICT = {
 	RESOLVING: { label: 'CHECKING…', tone: 'var(--vtc-sub)', border: 'var(--vtc-line)', dot: 'var(--vtc-faint)', rail: 'var(--vtc-line)' },
 	TRUSTED: { label: 'TRUSTED', tone: 'var(--vtc-ok)', border: 'var(--vtc-ok)', dot: 'var(--vtc-ok)', rail: 'var(--vtc-ok)' },
-	PARTIAL: { label: 'PARTIAL', tone: 'var(--vtc-warn)', border: 'var(--vtc-warn)', dot: 'var(--vtc-warn)', rail: 'linear-gradient(var(--vtc-ok), var(--vtc-warn))' },
 	UNTRUSTED: { label: 'UNTRUSTED', tone: 'var(--vtc-bad)', border: 'var(--vtc-bad)', dot: 'var(--vtc-bad)', rail: 'var(--vtc-bad)' },
 	UNVERIFIED: { label: 'UNVERIFIED', tone: 'var(--vtc-sub)', border: 'var(--vtc-line)', dot: 'var(--vtc-faint)', rail: 'var(--vtc-line)' },
 } as const;
@@ -256,9 +255,9 @@ export const VeranaTrustCard: React.FC<{ trust: VeranaTrustState }> = ({ trust }
 					<code className="min-w-0 flex-1 truncate font-mono text-[0.9rem] text-[var(--vtc-sub)]" title={trust.did}>
 						{trust.did}
 					</code>
-					{trust.testnet && (
+					{trust.networkBadge && (
 						<span className="shrink-0 rounded-md border-[1.5px] border-[var(--vtc-warn-line)] px-1.5 text-[0.68rem] font-extrabold tracking-[0.08em] text-[var(--vtc-warn)]">
-							TESTNET
+							{trust.networkBadge}
 						</span>
 					)}
 					<VeranaMark size={30} />

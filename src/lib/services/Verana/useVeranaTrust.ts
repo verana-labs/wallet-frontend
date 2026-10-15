@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useHttpProxy } from '../HttpProxy/HttpProxy';
+import { VERANA_NETWORK } from '@/config';
 import {
 	checkVeranaAccreditation,
 	resolveVeranaTrust,
@@ -39,7 +40,8 @@ export interface VeranaTrustState {
 	did?: string;
 	trustStatus: VeranaTrustStatus;
 	isResolving: boolean;
-	testnet: boolean;
+	/** The name of the Verana network when it is not a production network, for the badge. */
+	networkBadge?: string;
 	service?: VeranaIdentity;
 	organization?: VeranaIdentity;
 	serviceSelfIssued: boolean;
@@ -65,7 +67,7 @@ interface Resolution {
 const PENDING: Resolution = { isResolving: true, isCheckingAccreditation: false };
 
 const text = (credential: VeranaCredential | undefined, name: string): string | undefined => {
-	const value = credential?.claims?.[name];
+	const value = credential?.credentialSubject?.[name];
 	return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 };
 
@@ -81,17 +83,19 @@ const httpUrl = (value: string | undefined): string | undefined => {
 	}
 };
 
-const findCredential = (details: VeranaDetails | undefined, ecsType: string): VeranaCredential | undefined =>
-	details?.credentials?.find((credential) => credential.ecsType === ecsType);
+const findCredential = (details: VeranaDetails | undefined, ecsSchema: string): VeranaCredential | undefined =>
+	details?.credentials.find((credential) => credential.ecsSchema === ecsSchema);
 
+/** The credential id is `<issuer DID>#<uuid>`. */
 const isSelfIssued = (credential: VeranaCredential | undefined, did?: string): boolean =>
-	Boolean(credential?.issuedBy && did && credential.issuedBy.split('#')[0] === did);
+	Boolean(credential?.id && did && credential.id.split('#')[0] === did);
 
+/** The indexer lists only the ECS credentials it accepted. */
 const readIdentity = (credential: VeranaCredential | undefined): VeranaIdentity | undefined => {
-	if (!credential || credential.result !== 'VALID') {
+	if (!credential) {
 		return undefined;
 	}
-	const age = credential.claims?.minimumAgeRequired;
+	const age = credential.credentialSubject?.minimumAgeRequired;
 	return {
 		name: text(credential, 'name'),
 		description: text(credential, 'description'),
@@ -99,8 +103,8 @@ const readIdentity = (credential: VeranaCredential | undefined): VeranaIdentity 
 		address: text(credential, 'address'),
 		registryId: text(credential, 'registryId'),
 		minimumAgeRequired: typeof age === 'number' ? age : undefined,
-		termsUrl: httpUrl(text(credential, 'termsAndConditions')),
-		privacyUrl: httpUrl(text(credential, 'privacyPolicy')),
+		termsUrl: httpUrl(text(credential, 'termsAndConditionsUri')),
+		privacyUrl: httpUrl(text(credential, 'privacyPolicyUri')),
 	};
 };
 
@@ -138,7 +142,8 @@ export const useVeranaTrust = (counterparty?: VeranaCounterparty): VeranaTrustSt
 			}
 
 			const { vtjscId, name } = await veranaSchemaFromVct(httpProxy, vctUrl);
-			const accredited = vtjscId ? await checkVeranaAccreditation(httpProxy, did, vtjscId, role) : undefined;
+			const accredited =
+				vtjscId && details ? await checkVeranaAccreditation(httpProxy, details, vtjscId, role) : undefined;
 			if (cancelled) {
 				return;
 			}
@@ -153,14 +158,14 @@ export const useVeranaTrust = (counterparty?: VeranaCounterparty): VeranaTrustSt
 	return useMemo(() => {
 		const { did, details, isResolving, accredited, isCheckingAccreditation, schemaName } = resolution;
 		const trustStatus: VeranaTrustStatus = details?.trustStatus ?? 'UNVERIFIED';
-		const serviceCredential = findCredential(details, 'ECS-SERVICE');
-		const organizationCredential = findCredential(details, 'ECS-ORG');
+		const serviceCredential = findCredential(details, 'ServiceCredential');
+		const organizationCredential = findCredential(details, 'OrganizationCredential');
 
 		return {
 			did,
 			trustStatus,
 			isResolving,
-			testnet: details?.production === false,
+			networkBadge: VERANA_NETWORK === 'mainnet' ? undefined : VERANA_NETWORK.toUpperCase(),
 			service: readIdentity(serviceCredential),
 			organization: readIdentity(organizationCredential),
 			serviceSelfIssued: isSelfIssued(serviceCredential, did),
@@ -176,7 +181,6 @@ export const useVeranaTrust = (counterparty?: VeranaCounterparty): VeranaTrustSt
 				(Boolean(did) &&
 					(isCheckingAccreditation ||
 						trustStatus === 'UNTRUSTED' ||
-						trustStatus === 'PARTIAL' ||
 						accredited === false)),
 		};
 	}, [resolution, credentialName, role]);

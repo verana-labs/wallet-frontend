@@ -1,7 +1,6 @@
 import { IHttpProxy } from '@/lib/interfaces/IHttpProxy';
+import { VERANA_PLAYGROUND_URL } from '@/config';
 import { VeranaRole } from './veranaTrust';
-
-export const VERANA_PLAYGROUND = 'https://playground.testnet.verana.network';
 
 export interface VeranaDemoScenario {
 	id: string;
@@ -20,7 +19,7 @@ export const VERANA_DEMO_SCENARIOS: VeranaDemoScenario[] = [
 
 export const mintVeranaDemo = async (httpProxy: IHttpProxy, scenario: VeranaDemoScenario): Promise<string | undefined> => {
 	const response = await httpProxy.get(
-		`${VERANA_PLAYGROUND}/api/demo/${scenario.service}?format=openid4vc-sdjwt&signer=x5c`,
+		`${VERANA_PLAYGROUND_URL}/api/demo/${scenario.service}?format=openid4vc-sdjwt&signer=x5c`,
 		{ Accept: 'application/json' },
 	);
 	if (response.status < 200 || response.status > 299) {

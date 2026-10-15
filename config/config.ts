@@ -50,6 +50,11 @@ export const ClientEnvConfigSchema = z.object({
 	SHOW_PWA_INSTALL_PROMPT: z.string().optional(),
 	DISPLAY_CREDENTIAL_USAGES: z.string().optional(),
 	DEV_MODE: z.string().optional(),
+
+	// Verana trust checks (Verifiable Trust V4).
+	VERANA_NETWORK: z.string().optional(),
+	VERANA_INDEXER_URL: z.string().optional(),
+	VERANA_PLAYGROUND_URL: z.string().optional(),
 });
 export type ClientEnvConfig = z.infer<typeof ClientEnvConfigSchema>;
 

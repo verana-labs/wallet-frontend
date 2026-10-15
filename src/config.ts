@@ -54,6 +54,10 @@ export const POLICY_LINKS = config.policy_links;
 export const SHOW_PWA_INSTALL_PROMPT = config.show_pwa_install_prompt ? config.show_pwa_install_prompt === 'true' : false;
 export const DISPLAY_CREDENTIAL_USAGES = config.display_credential_usages ? config.display_credential_usages === 'true' : false;
 export const DEV_MODE = config.dev_mode ? config.dev_mode === 'true' : false;
+// The Verana network of the trust checks. On Verifiable Trust V4 the indexer resolves trust.
+export const VERANA_NETWORK = config.verana_network || 'devnet';
+export const VERANA_INDEXER_URL = (config.verana_indexer_url || `https://idx.${VERANA_NETWORK}.verana.network`).replace(/\/+$/, '');
+export const VERANA_PLAYGROUND_URL = (config.verana_playground_url || `https://playground.${VERANA_NETWORK}.verana.network`).replace(/\/+$/, '');
 export const BRANDING = {
 	LOGO_LIGHT: config.branding?.logo_light || '/logo_light.svg',
 	LOGO_DARK: config.branding?.logo_dark || '/logo_dark.svg',

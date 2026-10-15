@@ -309,7 +309,7 @@
 	},
 	"pageVerana": {
 		"title": "Verana demos",
-		"description": "Six live services on the Verana testnet, three issuers and three verifiers. Each one shows how the wallet checks a counterparty against the public trust registry before you accept or share: identity first, then accreditation for this exact credential.",
+		"description": "Six live services on the Verana {{network}}, three issuers and three verifiers. Each one shows how the wallet checks a counterparty against the public trust registry before you accept or share: identity first, then accreditation for this exact credential.",
 		"issuers": "Issuers",
 		"verifiers": "Verifiers",
 		"run": "Run scenario",
