@@ -1,4 +1,4 @@
-import { compactDecrypt, CompactDecryptResult, CompactEncrypt, CompactJWEHeaderParameters, exportJWK, generateKeyPair, importJWK, JWK, KeyLike } from "jose";
+import { calculateJwkThumbprint, compactDecrypt, CompactDecryptResult, CompactEncrypt, CompactJWEHeaderParameters, exportJWK, generateKeyPair, importJWK, JWK, KeyLike } from "jose";
 import { generateDPoP } from "../../utils/dpop";
 import { useHttpProxy } from "../HttpProxy/HttpProxy";
 import { useOpenID4VCIHelper } from "../OpenID4VCIHelper";
@@ -340,11 +340,15 @@ export function useCredentialRequest() {
 			ephemeralKeypair = await generateKeyPair(credentialResponseEncryptionAlg);
 
 			const ephemeralPublicKeyJwk = await exportJWK(ephemeralKeypair.publicKey);
+			// Issuers built on Credo (vs-agent) refuse a response encryption key without a kid:
+			// the kid goes into the JWE header of the response. The thumbprint names the key.
+			const ephemeralPublicKeyKid = await calculateJwkThumbprint(ephemeralPublicKeyJwk);
 			credentialEndpointBody.credential_response_encryption = {
 				alg: credentialResponseEncryptionAlg,
 				enc: credentialResponseEncryptionEnc,
 				jwk: {
 					...ephemeralPublicKeyJwk,
+					kid: ephemeralPublicKeyKid,
 					alg: credentialResponseEncryptionAlg,
 					use: 'enc'
 				},
